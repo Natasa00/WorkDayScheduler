@@ -4,6 +4,8 @@ A simple calendar app for scheduling the work day activities
 
 ## Deployment Link
 
+https://natasa00.github.io/WorkDayScheduler/
+
 ## Technologies used for this project
 
 - JavaScript

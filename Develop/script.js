@@ -1,26 +1,114 @@
-// Wrap all code that interacts with the DOM in a call to jQuery to ensure that
-// the code isn't run until the browser has finished rendering all the elements
-// in the html.
-$(function () {
-  // TODO: Add a listener for click events on the save button. This code should
-  // use the id in the containing time-block as a key to save the user input in
-  // local storage. HINT: What does `this` reference in the click listener
-  // function? How can DOM traversal be used to get the "hour-x" id of the
-  // time-block containing the button that was clicked? How might the id be
-  // useful when saving the description in local storage?
-  //
-  // TODO: Add code to apply the past, present, or future class to each time
-  // block by comparing the id to the current hour. HINTS: How can the id
-  // attribute of each time-block be used to conditionally add or remove the
-  // past, present, and future classes? How can Day.js be used to get the
-  // current hour in 24-hour time?
-  //
-  // TODO: Add code to get any user input that was saved in localStorage and set
-  // the values of the corresponding textarea elements. HINT: How can the id
-  // attribute of each time-block be used to do this?
-  //
-  // TODO: Add code to display the current date in the header of the page.
-});
+class TimeTaskJson {
+  constructor(hour, task) {
+    this.hour = hour;
+    this.task = task;
+  }
+}
 
-var currentDayEl = $("#currentDay");
-currentDayEl.text(dayjs().format("dddd, MMMM D"));
+window.onload = function () {
+  const currentTimeblocks = localStorage.getItem("timeblockObjects");
+  const allTimeTasks = currentTimeblocks ? JSON.parse(currentTimeblocks) : [];
+  const currentTime = dayjs();
+
+  displayCurrentDate(currentTime);
+  displayTimeblockRows(currentTime);
+
+  document
+    .querySelector(".container-lg")
+    .addEventListener("click", function (event) {
+      saveTasks(event, allTimeTasks);
+    });
+
+  if (allTimeTasks.length !== 0) {
+    for (let row of allTimeTasks) {
+      document.querySelector(`#hour-${row.hour} textarea`).value = row.task;
+    }
+  }
+};
+
+function displayCurrentDate(currentTime) {
+  document.getElementById("currentDay").textContent =
+    currentTime.format("dddd, D MMMM YYYY");
+}
+
+/*** functions for displaying all hour rows ***/
+function displayTimeblockRows(currentTime) {
+  const currentHour = currentTime.hour();
+  //working hours until 5pm(17 hrs)
+  for (let i = 9; i <= 17; i++) {
+    const timerow = createTimeblockRow(i, currentHour);
+    const innerColumns = [createHourDiv(i), createTextArea(), createSaveBtn()];
+    for (let eachColumn of innerColumns) {
+      timerow.appendChild(eachColumn);
+    }
+    document.querySelector(".container-lg").appendChild(timerow);
+  }
+}
+
+/*Creating inner divs to display timme rows */
+function createTimeblockRow(hourId, currentHour) {
+  const timeblock = document.createElement("div");
+  timeblock.classList.add("row");
+  timeblock.classList.add("time-block");
+  const hourClass =
+    hourId < currentHour
+      ? "past"
+      : hourId === currentHour
+      ? "present"
+      : "future";
+  timeblock.classList.add(hourClass);
+  timeblock.id = `hour-${hourId}`;
+  return timeblock;
+}
+
+function createHourDiv(hour) {
+  const col = document.createElement("div");
+  col.classList.add("col-2", "col-md-1", "hour", "text-center", "py-3");
+  col.append(dayjs().hour(hour).format("ha"));
+  return col;
+}
+
+function createTextArea() {
+  const textArea = document.createElement("textarea");
+  textArea.classList.add("col-8", "col-md-10", "description");
+  textArea.rows = 3;
+  return textArea;
+}
+
+function createSaveBtn() {
+  const saveBtn = document.createElement("button");
+  saveBtn.classList.add("btn", "saveBtn", "col-2", "col-md-1");
+  saveBtn.ariaLabel = "save";
+  saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+  saveBtn.ariaHidden = true;
+  return saveBtn;
+}
+
+/* function for saving to local storage */
+function saveTasks(event, timeblockList) {
+  if (event.target.matches("button") || event.target.matches(".fa-save")) {
+    const timeblockHour = event.target.parentElement.id.split("-")[1];
+    const textAreaValue = document.querySelector(
+      `#hour-${Number(timeblockHour)} textarea`
+    ).value;
+    storeTimeAndTask(
+      new TimeTaskJson(timeblockHour, textAreaValue),
+      timeblockList
+    );
+    localStorage.setItem("timeblockObjects", JSON.stringify(timeblockList));
+  }
+}
+
+// loading json obj with time and relted tasks
+function storeTimeAndTask(newTimeblockObj, timeblockList) {
+  if (timeblockList.length > 0) {
+    for (let savedTimeblock of timeblockList) {
+      if (savedTimeblock.hour === newTimeblockObj.hour) {
+        savedTimeblock.task = newTimeblockObj.task;
+        return;
+      }
+    }
+  }
+  timeblockList.push(newTimeblockObj);
+  return;
+}
